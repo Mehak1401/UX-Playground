@@ -98,6 +98,17 @@ export function Layout({ children }: { children: ReactNode }) {
                   </div>
                 </div>
               </div>
+              <div className="h-4 w-px bg-border mx-1" />
+              <Link
+                to="/contact"
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  location.pathname === '/contact'
+                    ? 'text-foreground bg-secondary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Contact
+              </Link>
             </nav>
 
             {/* Actions */}
@@ -138,6 +149,15 @@ export function Layout({ children }: { children: ReactNode }) {
                 }`}
               >
                 Home
+              </Link>
+              <Link
+                to="/contact"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`block px-4 py-3 rounded-xl text-base font-medium transition-colors ${
+                  location.pathname === '/contact' ? 'bg-secondary text-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                Contact
               </Link>
               <div className="pt-4 pb-2">
                 <span className="px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">

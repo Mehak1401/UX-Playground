@@ -22,6 +22,7 @@ import PeakEndRule from "./pages/PeakEndRule";
 import DarkPatterns from "./pages/DarkPatterns";
 import AccessibilityLab from "./pages/AccessibilityLab";
 import TypographyLab from "./pages/TypographyLab";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
 const App = () => (
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/dark-patterns" element={<DarkPatterns />} />
               <Route path="/accessibility" element={<AccessibilityLab />} />
               <Route path="/typography" element={<TypographyLab />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>
