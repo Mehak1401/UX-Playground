@@ -5,21 +5,29 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ChevronRight } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 
-const allLaws = [
+const coreLaws = [
   { name: "Fitts's Law", path: '/fitts' },
   { name: "Hick's Law", path: '/hicks' },
   { name: "Miller's Law", path: '/millers' },
   { name: "Von Restorff Effect", path: '/von-restorff' },
   { name: "Zeigarnik Effect", path: '/zeigarnik' },
+];
+
+const advancedLaws = [
   { name: "Aesthetic-Usability", path: '/aesthetic-usability' },
   { name: "Doherty Threshold", path: '/doherty' },
   { name: "Law of Proximity", path: '/proximity' },
   { name: "Tesler's Law", path: '/teslers' },
   { name: "Peak-End Rule", path: '/peak-end' },
+];
+
+const labs = [
   { name: "Dark Pattern Dojo", path: '/dark-patterns' },
   { name: "Accessibility Lab", path: '/accessibility' },
   { name: "Typography Lab", path: '/typography' },
 ];
+
+const allLaws = [...coreLaws, ...advancedLaws, ...labs];
 
 export function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -74,15 +82,63 @@ export function Layout({ children }: { children: ReactNode }) {
                 Home
               </Link>
               <div className="h-4 w-px bg-border mx-1" />
+              {/* Core Dropdown */}
               <div className="relative group">
                 <button className="px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-                  Laws
+                  Core
                   <ChevronRight className="h-3.5 w-3.5 rotate-90 opacity-60" />
                 </button>
-                {/* Dropdown */}
                 <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                   <div className="bg-popover border border-border rounded-2xl shadow-xl p-2 min-w-[200px]">
-                    {allLaws.map((law) => (
+                    {coreLaws.map((law) => (
+                      <Link
+                        key={law.path}
+                        to={law.path}
+                        className={`block px-3 py-2 rounded-xl text-sm transition-colors ${
+                          location.pathname === law.path
+                            ? 'bg-secondary text-foreground font-medium'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                        }`}
+                      >
+                        {law.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* Advanced Dropdown */}
+              <div className="relative group">
+                <button className="px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                  Advanced
+                  <ChevronRight className="h-3.5 w-3.5 rotate-90 opacity-60" />
+                </button>
+                <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                  <div className="bg-popover border border-border rounded-2xl shadow-xl p-2 min-w-[200px]">
+                    {advancedLaws.map((law) => (
+                      <Link
+                        key={law.path}
+                        to={law.path}
+                        className={`block px-3 py-2 rounded-xl text-sm transition-colors ${
+                          location.pathname === law.path
+                            ? 'bg-secondary text-foreground font-medium'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                        }`}
+                      >
+                        {law.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* Labs Dropdown */}
+              <div className="relative group">
+                <button className="px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                  Labs
+                  <ChevronRight className="h-3.5 w-3.5 rotate-90 opacity-60" />
+                </button>
+                <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                  <div className="bg-popover border border-border rounded-2xl shadow-xl p-2 min-w-[200px]">
+                    {labs.map((law) => (
                       <Link
                         key={law.path}
                         to={law.path}
@@ -159,12 +215,55 @@ export function Layout({ children }: { children: ReactNode }) {
               >
                 Contact
               </Link>
+              {/* Core Section */}
               <div className="pt-4 pb-2">
                 <span className="px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  UX Laws
+                  Core Heuristics
                 </span>
               </div>
-              {allLaws.map((law) => (
+              {coreLaws.map((law) => (
+                <Link
+                  key={law.path}
+                  to={law.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block px-4 py-3 rounded-xl text-sm transition-colors ${
+                    location.pathname === law.path
+                      ? 'bg-secondary text-foreground font-medium'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  {law.name}
+                </Link>
+              ))}
+
+              {/* Advanced Section */}
+              <div className="pt-4 pb-2">
+                <span className="px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Psychology & Perception
+                </span>
+              </div>
+              {advancedLaws.map((law) => (
+                <Link
+                  key={law.path}
+                  to={law.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block px-4 py-3 rounded-xl text-sm transition-colors ${
+                    location.pathname === law.path
+                      ? 'bg-secondary text-foreground font-medium'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  {law.name}
+                </Link>
+              ))}
+
+              {/* Labs Section */}
+              <div className="pt-4 pb-2">
+                <span className="px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Interactive Labs
+                </span>
+              </div>
+              {labs.map((law) => (
                 <Link
                   key={law.path}
                   to={law.path}
