@@ -4,11 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
-type Msg = { role: 'user' | 'assistant'; content: string };
+type Msg = { role: 'user' | 'model'; content: string };
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${GEMINI_API_KEY}`;
 
 const pageContextMap: Record<string, string> = {
+  '/': 'Homepage',
   '/fitts': "Fitts's Law",
   '/hicks': "Hick's Law",
   '/millers': "Miller's Law",
@@ -23,6 +25,8 @@ const pageContextMap: Record<string, string> = {
   '/accessibility': 'Accessibility Simulator',
   '/typography': 'Typography Lab',
 };
+
+const systemInstruction = `You are a helpful UX/UI design assistant. You help users understand UX laws, principles, and best practices. Provide clear, practical explanations with real-world examples. Keep responses concise and actionable. When relevant, suggest how to apply the principle in actual design work.`;
 
 export function AIChatbot() {
   const [open, setOpen] = useState(false);
@@ -47,10 +51,10 @@ export function AIChatbot() {
 
   // Context-aware greeting when opening on a law page
   useEffect(() => {
-    if (open && messages.length === 0 && currentPage) {
+    if (open && messages.length === 0 && currentPage && currentPage !== 'Homepage') {
       setMessages([
         {
-          role: 'assistant',
+          role: 'model',
           content: `I see you're exploring **${currentPage}**! 👋 Want to know how to apply this principle in real-world design? Ask me anything!`,
         },
       ]);
@@ -70,68 +74,57 @@ export function AIChatbot() {
     let assistantSoFar = '';
 
     try {
-      const resp = await fetch(CHAT_URL, {
+      const resp = await fetch(GEMINI_API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: updatedMessages,
-          currentPage,
+          system_instruction: { parts: [{ text: systemInstruction }] },
+          contents: updatedMessages.map(m => ({
+            role: m.role,
+            parts: [{ text: m.content }]
+          }))
         }),
       });
 
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ error: 'Something went wrong' }));
-        setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${err.error}` }]);
+        const err = await resp.json().catch(() => ({ error: { message: 'Something went wrong' } }));
+        setMessages(prev => [...prev, { role: 'model', content: `⚠️ ${err.error?.message || 'API error'}` }]);
         setIsLoading(false);
         return;
       }
 
       const reader = resp.body!.getReader();
       const decoder = new TextDecoder();
-      let textBuffer = '';
-      let streamDone = false;
 
-      while (!streamDone) {
+      while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        textBuffer += decoder.decode(value, { stream: true });
 
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-          if (line.endsWith('\r')) line = line.slice(0, -1);
-          if (line.startsWith(':') || line.trim() === '') continue;
-          if (!line.startsWith('data: ')) continue;
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n').filter(line => line.trim());
 
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') { streamDone = true; break; }
-
+        for (const line of lines) {
           try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              assistantSoFar += content;
+            const parsed = JSON.parse(line);
+            const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+              assistantSoFar += text;
               const snapshot = assistantSoFar;
               setMessages(prev => {
                 const last = prev[prev.length - 1];
-                if (last?.role === 'assistant' && prev.length > updatedMessages.length) {
+                if (last?.role === 'model' && prev.length > updatedMessages.length) {
                   return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: snapshot } : m);
                 }
-                return [...prev, { role: 'assistant', content: snapshot }];
+                return [...prev, { role: 'model', content: snapshot }];
               });
             }
           } catch {
-            textBuffer = line + '\n' + textBuffer;
-            break;
+            // Skip malformed JSON lines
           }
         }
       }
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Connection error. Please try again.' }]);
+      setMessages(prev => [...prev, { role: 'model', content: '⚠️ Connection error. Please try again.' }]);
     } finally {
       setIsLoading(false);
     }
@@ -207,7 +200,7 @@ export function AIChatbot() {
                         : 'bg-secondary text-secondary-foreground rounded-bl-md'
                     }`}
                   >
-                    {msg.role === 'assistant' ? (
+                    {msg.role === 'model' ? (
                       <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0 [&>ul]:m-0 [&>ol]:m-0">
                         <ReactMarkdown>{msg.content}</ReactMarkdown>
                       </div>
