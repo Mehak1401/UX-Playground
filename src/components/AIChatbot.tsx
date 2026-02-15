@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 type Msg = { role: 'user' | 'model'; content: string };
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 const pageContextMap: Record<string, string> = {
   '/': 'Homepage',
@@ -71,59 +71,45 @@ export function AIChatbot() {
     setInput('');
     setIsLoading(true);
 
-    let assistantSoFar = '';
-
     try {
+      // Build conversation history for Gemini
+      const contents = [];
+
+      // Add conversation history (alternate user/model)
+      for (const msg of updatedMessages) {
+        contents.push({
+          role: msg.role === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.content }]
+        });
+      }
+
       const resp = await fetch(GEMINI_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemInstruction }] },
-          contents: updatedMessages.map(m => ({
-            role: m.role,
-            parts: [{ text: m.content }]
-          }))
+          systemInstruction: { parts: [{ text: systemInstruction }] },
+          contents
         }),
       });
 
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ error: { message: 'Something went wrong' } }));
-        setMessages(prev => [...prev, { role: 'model', content: `⚠️ ${err.error?.message || 'API error'}` }]);
+        const errText = await resp.text();
+        console.error('Gemini API error:', resp.status, errText);
+        setMessages(prev => [...prev, { role: 'model', content: `⚠️ API error (${resp.status}): ${errText.slice(0, 200)}` }]);
         setIsLoading(false);
         return;
       }
 
-      const reader = resp.body!.getReader();
-      const decoder = new TextDecoder();
+      const data = await resp.json();
+      const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n').filter(line => line.trim());
-
-        for (const line of lines) {
-          try {
-            const parsed = JSON.parse(line);
-            const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) {
-              assistantSoFar += text;
-              const snapshot = assistantSoFar;
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === 'model' && prev.length > updatedMessages.length) {
-                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: snapshot } : m);
-                }
-                return [...prev, { role: 'model', content: snapshot }];
-              });
-            }
-          } catch {
-            // Skip malformed JSON lines
-          }
-        }
+      if (responseText) {
+        setMessages(prev => [...prev, { role: 'model', content: responseText }]);
+      } else {
+        setMessages(prev => [...prev, { role: 'model', content: '⚠️ No response from AI.' }]);
       }
-    } catch {
+    } catch (err) {
+      console.error('Fetch error:', err);
       setMessages(prev => [...prev, { role: 'model', content: '⚠️ Connection error. Please try again.' }]);
     } finally {
       setIsLoading(false);
